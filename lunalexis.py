@@ -1,71 +1,40 @@
-<<<<<<< HEAD
 import streamlit as st
 import openai
 
-# Sidebar สำหรับป้อน API Key
-st.sidebar.title("API Settings")
-api_key = st.sidebar.text_input("Enter your OpenAI API key", type="password")
+# ตั้งค่า API Key
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-if api_key:
-    openai.api_key = api_key
+# ฟังก์ชันสำหรับเรียก GPT
+def get_gpt_response(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        return f"Error: {e}"
 
-    st.title("OpenAI API Key Test")
-    st.subheader("Enter a prompt to test the API:")
-    user_prompt = st.text_area("Prompt:", placeholder="Type something to test the OpenAI API...")
+# สร้างหน้าเว็บด้วย Streamlit
+st.title("OpenAI GPT Chat")
+st.write("กรุณาใส่ข้อความเพื่อสนทนากับ GPT")
 
-    if st.button("Submit"):
-        if user_prompt.strip():
-            try:
-                # เรียกใช้ OpenAI API
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": user_prompt}
-                    ]
-                )
-                # แสดงผลลัพธ์ที่ได้
-                output_text = response.choices[0].message["content"].strip()
-                st.subheader("API Response:")
-                st.write(output_text)
-            except Exception as e:
-                st.error(f"Error: {e}")
-        else:
-            st.warning("Please enter a prompt to test!")
-else:
-    st.warning("Please enter your OpenAI API key in the sidebar.")
-=======
-import streamlit as st
-import openai
+# ช่องป้อนข้อความ
+user_input = st.text_area("ข้อความ:", placeholder="พิมพ์คำถามหรือข้อความที่ต้องการถาม GPT...")
 
-# Sidebar สำหรับป้อน API Key
-st.sidebar.title("API Settings")
-api_key = st.sidebar.text_input("Enter your OpenAI API key", type="password")
+# ปุ่มส่งข้อความ
+if st.button("ส่ง"):
+    if user_input.strip():
+        with st.spinner("กำลังประมวลผล..."):
+            response = get_gpt_response(user_input)
+        st.write("**GPT ตอบ:**")
+        st.write(response)
+    else:
+        st.warning("กรุณาใส่ข้อความก่อนส่ง!")
 
-if api_key:
-    openai.api_key = api_key
-
-    st.title("Test OpenAI API")
-    st.subheader("Type a prompt to test the API:")
-    user_prompt = st.text_input("Prompt:", placeholder="Type something to test...")
-
-    if st.button("Submit"):
-        if user_prompt.strip():
-            try:
-                # ใช้รูปแบบใหม่ของ OpenAI API
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": user_prompt}
-                    ]
-                )
-                # แสดงผลลัพธ์
-                output_text = response.choices[0].message["content"].strip()
-                st.subheader("API Response:")
-                st.write(output_text)
-            except Exception as e:
-                st.error(f"Error: {e}")
-        else:
-            st.warning("Please enter a prompt!")
-else:
-    st.warning("Please enter your OpenAI API key in the sidebar.")
->>>>>>> c01f13131495e14bc63acfa40de5f6b0a057f955
+# คำเตือน
+st.sidebar.header("คำแนะนำ")
+st.sidebar.info("โปรดตรวจสอบว่าได้ตั้งค่า API Key ใน secrets ของ Streamlit แล้ว")
