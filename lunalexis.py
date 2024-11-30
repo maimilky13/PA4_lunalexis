@@ -1,8 +1,8 @@
 import streamlit as st
 import openai
 import pandas as pd
-import jieba  
-from pypinyin import pinyin, Style  
+import jieba
+from pypinyin import pinyin, Style
 import re
 
 # ฟังก์ชันสำหรับการตัดคำและคลีนคำ
@@ -23,16 +23,19 @@ if api_key:
 
     st.title("LunaLexis 🌖")
     st.subheader("Introduction to the App 🥮")
-    st.text("Welcome to the NLP Application with Preprocessing, an interactive tool designed\nto assist learners and enthusiasts of the Chinese language in exploring and\nanalyzing text. This application integrates advanced natural language processing\ntechniques with OpenAI's GPT capabilities to deliver a comprehensive\nsuite of features, including:")
+    st.text("""
+    Welcome to the NLP Application with Preprocessing, an interactive tool designed
+    to assist learners and enthusiasts of the Chinese language in exploring and
+    analyzing text. This application integrates advanced natural language processing
+    techniques with OpenAI's GPT capabilities to deliver a comprehensive suite of features:
+    """)
     st.text(' ')
     st.text("1. Pinyin Conversion\n2. Summarization\n3. HSK Vocabulary Extraction")
     st.text(' ')
-    st.text('This app is perfect for language learners, educators, and anyone looking to gain\ndeeper insights into Chinese text, whether for study or personal interest.')
 
     # ส่วนสำหรับกรอกข้อความด้วยมือ
     st.header("Manual Input 🐉")
     user_input = st.text_area("Enter your Chinese text here:", height=150)
-    # เพิ่มตัวเลือกระดับความยาก HSK
     st.subheader("Select HSK Level 🐉")
     hsk_level = st.selectbox("Choose the HSK difficulty level (1-6):", ["HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"])
 
@@ -47,10 +50,12 @@ if api_key:
 
                 # 3. สรุปเนื้อหาและแปลเป็นภาษาอังกฤษ
                 response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
-    messages=[{"role": "user", "content": f"Please summarize the following Chinese article into English, focusing on the main ideas and key information: {user_input}"}],
-)
-                summary_text = response['choices'][0]['message']['content'].strip()
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "user", "content": f"Please summarize the following Chinese article into English, focusing on the main ideas and key information: {user_input}"}
+                    ]
+                )
+                summary_text = response.choices[0].message["content"].strip()
 
                 # 4. เลือกคำศัพท์ที่น่าสนใจและแปลเป็นภาษาไทย
                 keyword_response = openai.ChatCompletion.create(
@@ -82,30 +87,22 @@ Text:
                     ],
                     max_tokens=300
                 )
-                keywords_table = keyword_response['choices'][0]['message']['content'].strip()
+                keywords_table = keyword_response.choices[0].message["content"].strip()
 
+                # แปลงตารางผลลัพธ์เป็น DataFrame
+                keywords_list = []
+                for line in keywords_table.split("\n"):
+                    if "|" in line:  # ใช้ '|' เป็นตัวแบ่งคอลัมน์
+                        parts = [col.strip() for col in line.split("|")]
+                        if len(parts) == 3 and parts[0] != "Keyword":  # ตรวจสอบว่ามี 3 คอลัมน์
+                            keywords_list.append(parts)
 
-                # ตรวจสอบว่าผลลัพธ์มีข้อมูลหรือไม่
-                if not keywords_table.strip():
-                    st.error("No response from OpenAI API. Please check the input or API key.")
+                if keywords_list:
+                    df_keywords = pd.DataFrame(keywords_list, columns=["Chinese Word", "Pinyin", "English Translation"])
+                else:
+                    st.warning("No keywords were extracted. Please check the input or API response format.")
                     df_keywords = pd.DataFrame(columns=["Chinese Word", "Pinyin", "English Translation"])  # DataFrame ว่าง
 
-                else:
-                    # แปลงตารางผลลัพธ์เป็น DataFrame
-                    keywords_list = []
-                    for line in keywords_table.split("\n"):
-                        if "|" in line:  # ใช้ '|' เป็นตัวแบ่งคอลัมน์
-                            parts = [col.strip() for col in line.split("|")]
-                            if len(parts) == 3 and parts[0] != "Keyword":  # ตรวจสอบว่ามี 3 คอลัมน์
-                                keywords_list.append(parts)
-
-                    # ตรวจสอบว่ามีคำศัพท์ในตารางหรือไม่
-                    if keywords_list:
-                        df_keywords = pd.DataFrame(keywords_list, columns=["Chinese Word", "Pinyin", "English Translation"])
-            
-                    else:
-                        st.warning("No keywords were extracted. Please check the input or API response format.")
-                        df_keywords = pd.DataFrame(columns=["Chinese Word", "Pinyin", "English Translation"])  # DataFrame ว่าง
                 # แสดงผลลัพธ์
                 st.subheader("Pinyin 🧧")
                 st.write(f"{pinyin_text}")
